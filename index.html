@@ -276,10 +276,10 @@ function shift(g,fromKnob){
   if(g===st.gear)return true;
   const running=st.eng||st.crank>0;
   if(g==="N"){
-    if(running&&st.cp<.75&&Math.abs(st.v)>1){penalty("out",1,"گیئر نکالنے کیلئے بھی پہلے کلچ دبائیں",1.5);return false}
+    if(st.cp<.75){if(running)penalty("out",1,"گیئر نکالنے کیلئے بھی پہلے کلچ پورا دبائیں",1.5);else toast("گیئر نکالنے سے پہلے کلچ پورا دبائیں");return false}
     st.gear="N";if(!fromKnob)setGearUI();return true;
   }
-  if(running&&st.cp<.75){sfx("grind");penalty("grind",2,"کڑ کڑ! گیئر لگانے سے پہلے کلچ پورا دبائیں",1.5);return false}
+  if(st.cp<.75){if(running){sfx("grind");penalty("grind",2,"کڑ کڑ! گیئر لگانے سے پہلے کلچ پورا دبائیں",1.5)}else toast("گیئر لگانے سے پہلے کلچ پورا دبائیں");return false}
   if(g==="R"&&st.v>2){sfx("grind");penalty("grindR",2,"چلتی گاڑی میں ریورس نہیں لگتا، پہلے پوری طرح رکیں",1.5);return false}
   if(g!=="N"&&g!=="R"&&st.v<-1){sfx("grind");toast("گاڑی پیچھے جا رہی ہے، پہلے رکیں");return false}
   st.gear=g;if(!fromKnob)setGearUI();
