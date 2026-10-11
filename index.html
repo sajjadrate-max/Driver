@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>ڈرائیور سیٹ</title>
+<script>window.__bip=null;addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;document.dispatchEvent(new Event("bip"))});</script>
 <meta name="theme-color" content="#141619">
 <meta name="description" content="مینوئل گاڑی چلانا سیکھنے کا سمیولیٹر: کلچ، گیئر، ریس، بریک اور اسٹیئرنگ۔">
 <link rel="manifest" href="./manifest.json">
@@ -77,7 +78,12 @@ button:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
   .row2{height:auto;flex:1;max-height:170px}
 }
 .card button.install{background:transparent;color:var(--yellow);border:1px solid var(--yellow);font-size:16px}
-.iosTip{margin-top:8px!important;background:#15181b;border:1px dashed #3a4047;border-radius:10px;padding:6px 10px;color:var(--ink)!important}
+#bApp{flex:.6 1 0;font-size:17px}
+.instModal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20;direction:rtl}
+.instModal .box{background:#1f2327;border:1px solid #3a4047;border-radius:14px;padding:16px 18px;max-width:400px;line-height:1.9;font-size:15px}
+.instModal h2{margin:0 0 6px;font-size:19px;color:var(--yellow)}
+.instModal ol{margin:4px 0;padding-inline-start:20px}
+.instModal button{margin-top:10px;width:100%;font:inherit;font-size:16px;font-weight:700;padding:7px;border-radius:10px;border:0;background:var(--yellow);color:#15171a;cursor:pointer}
 </style>
 
 </head>
@@ -109,8 +115,7 @@ button:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
         <p><b>اسٹیئرنگ:</b> انگلی اسٹیئرنگ پر رکھ کر اسے گول گھمائیں، جیسے اصل گاڑی میں۔ دونوں ہاتھ 9 اور 3 بجے کی جگہ رکھیں۔ نظر دور سڑک پر رکھیں، گاڑی کے بالکل سامنے نہیں۔ اوپر والی لین پٹی میں ہرا نشان لین کے بیچ میں رکھیں۔ تھوڑا سا گھمانا کافی ہوتا ہے، زیادہ نہیں۔</p><p>شروع میں مشکل لگے تو "لین مدد" آن کر لیں، گاڑی خود لین میں رہے گی۔</p>
         <p><b>ہارن:</b> اسٹیئرنگ کے بیچ والا گول حصہ دبائیں۔</p><p>پاکستان میں بائیں طرف چلتے ہیں۔ بائیں لین میں رہیں۔</p>
         <button id="bGo">گاڑی میں بیٹھیں</button>
-        <button id="bInstall" class="install" hidden>📲 ایپ انسٹال کریں</button>
-        <p class="iosTip" id="iosTip" hidden>ایپ انسٹال کرنے کے لیے Safari میں نیچے <b>شیئر</b> بٹن (⬆️) دبائیں، پھر <b>Add to Home Screen</b> چنیں۔</p>
+        <button id="bInstall" class="install">📲 ایپ انسٹال کریں</button>
       </div>
     </div>
   </div>
@@ -123,6 +128,7 @@ button:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
       <button id="bIndR" aria-label="دایاں اشارہ">▶</button>
       <button id="bAssist" class="on">لین مدد</button>
       <button id="bReset" aria-label="دوبارہ شروع">↺</button>
+      <button id="bApp" aria-label="ایپ انسٹال کریں">📲</button>
     </div>
     <div class="row2">
       <div class="pedal" id="pClutch"><div class="fill"></div><div class="grooves"></div><div class="bite"></div><span>کلچ</span></div>
@@ -132,6 +138,7 @@ button:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}
     </div>
   </div>
 </div>
+<div class="instModal" id="instModal" hidden><div class="box"><h2>ایپ انسٹال کریں</h2><div id="instText"></div><button id="instOk">ٹھیک ہے</button></div></div>
 
 <script>
 (function(){
@@ -848,19 +855,32 @@ reset();resize();requestAnimationFrame(frame);
   if("serviceWorker" in navigator&&location.protocol!=="file:"){
     window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});
   }
-  if(standalone)return;
-  var btn=document.getElementById("bInstall"),tip=document.getElementById("iosTip"),deferred=null;
-  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-  if(ios){btn.hidden=false;btn.onclick=function(){tip.hidden=!tip.hidden};}
-  window.addEventListener("beforeinstallprompt",function(e){
-    e.preventDefault();deferred=e;btn.hidden=false;
-    btn.onclick=function(){
-      if(!deferred)return;
-      deferred.prompt();
-      deferred.userChoice.finally(function(){deferred=null;btn.hidden=true});
-    };
-  });
-  window.addEventListener("appinstalled",function(){deferred=null;btn.hidden=true;tip.hidden=true});
+  var btns=[document.getElementById("bInstall"),document.getElementById("bApp")];
+  function hide(){btns.forEach(function(b){b.hidden=true})}
+  if(standalone){hide();return}
+  var modal=document.getElementById("instModal"),text=document.getElementById("instText");
+  document.getElementById("instOk").onclick=function(){modal.hidden=true};
+  var ua=navigator.userAgent;
+  var ios=/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  var inApp=/FBAN|FBAV|Instagram|Line\/|WhatsApp|GitHub|; wv\)/i.test(ua);
+  function help(){
+    var h;
+    if(inApp) h="<p>یہ صفحہ کسی دوسری ایپ کے اندر کھلا ہے، یہاں سے انسٹال نہیں ہو سکتا۔</p><ol><li>اوپر کونے میں <b>⋮</b> یا <b>…</b> دبائیں۔</li><li><b>Open in Chrome</b> (یا براؤزر میں کھولیں) چنیں۔</li><li>Chrome میں دوبارہ 📲 بٹن دبائیں۔</li></ol>";
+    else if(ios) h="<ol><li>یہ صفحہ <b>Safari</b> میں کھولیں۔</li><li>نیچے <b>شیئر</b> بٹن (⬆️) دبائیں۔</li><li><b>Add to Home Screen</b> چنیں، پھر <b>Add</b> دبائیں۔</li></ol>";
+    else if(/SamsungBrowser/i.test(ua)) h="<ol><li>نیچے مینو <b>☰</b> دبائیں۔</li><li><b>Add page to</b> ← <b>Home screen</b> چنیں۔</li></ol>";
+    else if(/Firefox/i.test(ua)) h="<ol><li>مینو <b>⋮</b> دبائیں۔</li><li><b>Install</b> یا <b>Add to Home screen</b> چنیں۔</li></ol>";
+    else h="<ol><li>Chrome میں اوپر دائیں کونے کا مینو <b>⋮</b> دبائیں۔</li><li><b>Install app</b> یا <b>Add to Home screen</b> چنیں۔</li><li>پھر <b>Install</b> دبائیں۔</li></ol><p>اگر یہ اوپشن نظر نہ آئے تو صفحہ ایک بار ریفریش کر کے دوبارہ کوشش کریں۔</p>";
+    text.innerHTML=h;modal.hidden=false;
+  }
+  function install(){
+    var e=window.__bip;
+    if(!e){help();return}
+    e.prompt();
+    e.userChoice.then(function(c){if(c&&c.outcome==="accepted")hide()}).catch(function(){});
+    window.__bip=null;
+  }
+  btns.forEach(function(b){b.onclick=install});
+  window.addEventListener("appinstalled",function(){window.__bip=null;hide();modal.hidden=true});
 })();
 </script>
 

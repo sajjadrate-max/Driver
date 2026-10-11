@@ -1,5 +1,5 @@
 // Offline cache for the Driver Seat app. Bump VERSION when files change.
-const VERSION = "driver-v1";
+const VERSION = "driver-v2";
 const CORE = [
   "./",
   "./index.html",
